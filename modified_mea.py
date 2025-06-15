@@ -111,8 +111,14 @@ def train_student(dataset, val_loader, teacher, device, T=5.0, max_epochs=10):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--temperature', type=float, default=5.0)
-parser.add_argument('--n_queries',   type=int,   default=9999, help='how many images to query (0=all)')
+parser.add_argument('--n_queries',   type=int,   default=10000, help='how many images to query (0=all)')
 parser.add_argument('--student_size', choices=['tiny','medium'], default='tiny')
+parser.add_argument('--base_sigma',   type=float, default=0.10)
+parser.add_argument('--sigma_growth', type=float, default=0.90)
+parser.add_argument('--base_flip',    type=float, default=0.05)
+parser.add_argument('--flip_growth',  type=float, default=0.45)
+parser.add_argument('--top_k',        type=int,   default=1)
+parser.add_argument('--cap',          type=int,   default=60000)   # n_max per IP
 args = parser.parse_args()
 
 def main(device='cpu'):
@@ -131,18 +137,18 @@ def main(device='cpu'):
     wm = Watermark(train_loader, target, n_canary=128, device=device)
 
     # NEW ② – set up query monitor (rate-limiting + χ² scan)
-    monitor = QueryMonitor(n_max = args.n_queries + 20_000)
+    monitor = QueryMonitor(n_max=args.cap)
 
     # NEW ③ – wrap the target with adaptive hardening
     target_protected = ExtractionDefenceWrapper(
         target,
         monitor,
-        base_sigma   = 0.10,   # σ ramps 0.10 → 1.00 as budget is consumed
-        sigma_growth = 0.90,
+        base_sigma   = args.base_sigma,
+        sigma_growth = args.sigma_growth,
         round_ndec   = 0,
-        top_k        = 1,
-        base_flip    = 0.05,   # flip probability ramps 5 % → 50 %
-        flip_growth  = 0.45,
+        top_k        = args.top_k,
+        base_flip    = args.base_flip,
+        flip_growth  = args.flip_growth,
         return_log   = False
     )
 
