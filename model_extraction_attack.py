@@ -95,10 +95,7 @@ def train_target(epochs=3, device="cpu"):
     print(f"[Target] test accuracy: {acc:.2f}%")
     return target
 
-
-# ---------------------------------------------------------------------------
 # 5.  Build the synthetic distillation dataset by querying the target model.
-# ---------------------------------------------------------------------------
 
 def build_extraction_dataset(
         target: torch.nn.Module,
@@ -127,11 +124,7 @@ def build_extraction_dataset(
 
     return torch.utils.data.TensorDataset(X, Y)
 
-
-
-# ---------------------------------------------------------------------------
 # 6.  Train the *student* via temperature‑scaled knowledge‑distillation.
-# ---------------------------------------------------------------------------
 
 def train_student(dataset, val_loader, target, device="cpu", T=5.0, epochs=10):
     loader = DataLoader(dataset, batch_size=128, shuffle=True)
