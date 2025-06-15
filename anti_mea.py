@@ -1,3 +1,4 @@
+# anti_extraction.py
 import time, random, hashlib, collections, statistics, json, pathlib
 from typing import Optional, Dict, List
 
@@ -5,8 +6,14 @@ import torch
 import torch.nn.functional as F
 
 # 1) QUERY-COST & IN-FLIGHT DETECTION
-
 class QueryMonitor:
+    """
+    Tracks queries per client and flags suspicious patterns.
+    - Hard query budget (n_max); beyond that we drop or obfuscate answers.
+    - Chi-square test on class histogram every 'window' queries to detect
+      almost-uniform probing typical of knock-off attacks.
+    Logs are written to ./logs/query_log.jsonl  (one JSON per query).
+    """
     def __init__(self,
                  n_max: int = 60_000,      # allow up to MNIST train size / client
                  window: int = 2_000,      # run χ² every 2k queries
@@ -20,7 +27,6 @@ class QueryMonitor:
         self.start     = time.time()
         pathlib.Path('logs').mkdir(exist_ok=True)
 
-    # --------------------------------------------------------------------- #
     def _log(self, client_ip: str, preds: torch.Tensor):
         ts  = time.time() - self.start
         top = preds.argmax(1).tolist()
@@ -42,7 +48,6 @@ class QueryMonitor:
             if chi2 < self.chi2_th:
                 print(f'[!] χ²={chi2:.2f} – POSSIBLE UNIFORM SCANNING ATTACK')
 
-    # --------------------------------------------------------------------- #
     def register(self, client_ip: str, preds: torch.Tensor):
         n_so_far = self.per_ip[client_ip]
         if n_so_far >= self.n_max:
@@ -52,6 +57,13 @@ class QueryMonitor:
 
 # 2) PROBABILISTIC DEFENCE WRAPPER  (+ adaptive hardening)
 class ExtractionDefenceWrapper(torch.nn.Module):
+    """
+    Wrap a model with:
+      - top-k truncation + coarse rounding
+      - Gaussian logit noise  (σ grows with #queries by that client)
+      - random dummy-label injection
+      - query monitoring / rate limiting
+    """
     def __init__(self,
                  model: torch.nn.Module,
                  monitor: QueryMonitor,
@@ -74,7 +86,6 @@ class ExtractionDefenceWrapper(torch.nn.Module):
         self.flip_growth   = flip_growth
         self.return_log    = return_log
 
-    # --------------------------------------------------------------------- #
     def _noise_and_flip_params(self, client_ip: str) -> (float, float):
         """Linear schedule based on fraction of budget already used."""
         frac = min(1.0, self.monitor.per_ip[client_ip] /
@@ -83,7 +94,6 @@ class ExtractionDefenceWrapper(torch.nn.Module):
         pflip = self.base_flip + frac * self.flip_growth
         return sigma, pflip
 
-    # --------------------------------------------------------------------- #
     @torch.no_grad()
     def forward(self, x: torch.Tensor, client_ip: str = 'anonymous'):
         logits = self.model(x)
@@ -124,6 +134,11 @@ class ExtractionDefenceWrapper(torch.nn.Module):
 
 # 3) WATERMARK SET  –  post-hoc theft detection
 class Watermark:
+    """
+    Builds a small “canary” set of inputs whose outputs (arg-max class) are
+    memorised.  Later you can test a suspect model: if it agrees on >τ %
+    of the canaries, raise an alarm.
+    """
     def __init__(self,
                  seed_loader: torch.utils.data.DataLoader,
                  teacher: torch.nn.Module,
@@ -134,7 +149,6 @@ class Watermark:
         self.tau    = tau
         self.inputs, self.labels = self._build(seed_loader, teacher, n_canary)
 
-    # --------------------------------------------------------------------- #
     @torch.no_grad()
     def _build(self, loader, teacher, n) -> (torch.Tensor, torch.Tensor):
         data = []
@@ -153,7 +167,6 @@ class Watermark:
         ys = torch.cat([l for _,l in data])[:n]
         return xs, ys
 
-    # --------------------------------------------------------------------- #
     @torch.no_grad()
     def check_suspect_model(self, suspect: torch.nn.Module) -> bool:
         suspect.eval()
