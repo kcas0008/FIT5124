@@ -1,11 +1,4 @@
 # -*- coding: utf-8 -*-
-"""model_extraction_attack.py  —  parameter‑tunable version
-
-Adds:
-•  --temperature, --n_queries, --student_size CLI flags for the impact‑factor grid.
-•  Global QUERY_COUNTER and precise wall‑clock timing for efficiency reporting.
-•  query_teacher() helper so every target call is counted.
-"""
 from __future__ import print_function
 import time, random, argparse
 import torch
