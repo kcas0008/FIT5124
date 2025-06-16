@@ -85,13 +85,13 @@ def train_and_evaluate_attack(X_tensor, y_tensor, hidden_layers=[32, 16], lr=1e-
 
 # 6. Experiment with different attack model hyperparameters
 settings = [
-    {"desc": "Default",     "hidden_layers": [32, 16],    "lr": 1e-3, "epochs": 100},
-    {"desc": "Shallow NN",  "hidden_layers": [16],         "lr": 1e-3, "epochs": 100},
-    {"desc": "Deep NN",     "hidden_layers": [64, 32, 16], "lr": 1e-3, "epochs": 100},
-    {"desc": "Low LR",      "hidden_layers": [32, 16],     "lr": 1e-4, "epochs": 100},
-    {"desc": "High LR",     "hidden_layers": [32, 16],     "lr": 1e-2, "epochs": 100},
-    {"desc": "Few Epochs",  "hidden_layers": [32, 16],     "lr": 1e-3, "epochs": 20},
-    {"desc": "Many Epochs", "hidden_layers": [32, 16],     "lr": 1e-3, "epochs": 200},
+    {"desc": "Default", "hidden_layers": [32, 16], "lr": 1e-3, "epochs": 100},
+    {"desc": "Shallow NN", "hidden_layers": [16], "lr": 1e-3, "epochs": 100},
+    {"desc": "Deep NN", "hidden_layers": [64, 32, 16], "lr": 1e-3, "epochs": 100},
+    {"desc": "Low LR", "hidden_layers": [32, 16], "lr": 1e-4, "epochs": 100},
+    {"desc": "High LR", "hidden_layers": [32, 16], "lr": 1e-2, "epochs": 100},
+    {"desc": "Few Epochs", "hidden_layers": [32, 16], "lr": 1e-3, "epochs": 20},
+    {"desc": "Many Epochs", "hidden_layers": [32, 16], "lr": 1e-3, "epochs": 200},
 ]
 
 print("Desc\t\tAccuracy\tROC AUC")
